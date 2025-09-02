@@ -13,8 +13,9 @@ export default function Gate() {
     try {
       setEmailIfValid(email);
       router.push("/qna");
-    } catch (e: any) {
-      setErr(e.message || "Invalid email");
+    } catch (e: unknown) {                    // ⬅️ was `any`
+      const msg = e instanceof Error ? e.message : "Invalid email";
+      setErr(msg);
     }
   }
 

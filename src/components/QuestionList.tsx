@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { getDeviceId } from "@/lib/device";
 import { hideQuestion } from "@/lib/mod";
@@ -12,6 +13,8 @@ type Row = {
   score: number;
   hidden: boolean;
 };
+
+type VoteRow = { id: string; question_id: string };
 
 function timeAgo(iso: string) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -47,7 +50,10 @@ function QuestionRow({
     if (taps.current >= 4) {
       setShowDelete(true);
       taps.current = 0;
-      if (timer.current) { window.clearTimeout(timer.current); timer.current = null; }
+      if (timer.current) {
+        window.clearTimeout(timer.current);
+        timer.current = null;
+      }
     }
   }
 
@@ -59,8 +65,9 @@ function QuestionRow({
       await hideQuestion(q.id, pwd, "admin");
       onDeleted();
       setShowDelete(false);
-    } catch (err: any) {
-      alert(err?.message || "Delete failed");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Delete failed";
+      alert(msg);
     }
   }
 
@@ -70,7 +77,10 @@ function QuestionRow({
       <div className="mt-2 flex items-center justify-between">
         {/* 👍 button unchanged */}
         <button
-          onClick={(e) => { e.stopPropagation(); onToggle(q.id, isVoted); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle(q.id, isVoted);
+          }}
           aria-pressed={isVoted}
           className={`rounded-lg border px-3 py-1 ${isVoted ? "bg-white/10" : ""}`}
           title={isVoted ? "Unlike" : "Like"}
@@ -94,34 +104,37 @@ export default function QuestionList() {
   const [list, setList] = useState<Row[]>([]);
   const [sort, setSort] = useState<"top" | "new">("top");
   const [voted, setVoted] = useState<Set<string>>(new Set());
-  const [tick, setTick] = useState(0); // 👈 trigger-only state for timeAgo updates
-
+  const [tick, setTick] = useState(0); // used to trigger re-render for timeAgo
   const deviceId = useMemo(getDeviceId, []);
 
   // Track vote row IDs created/deleted by THIS tab only
   const pendingInsertIds = useRef<Set<string>>(new Set());
   const pendingDeleteIds = useRef<Set<string>>(new Set());
 
-  // keep current sort in a ref for realtime handlers
+  // keep current sort in a ref for handlers
   const sortRef = useRef(sort);
-  useEffect(() => { sortRef.current = sort; }, [sort]);
+  useEffect(() => {
+    sortRef.current = sort;
+  }, [sort]);
 
   function sortRows(rows: Row[], mode: "top" | "new") {
     const copy = [...rows];
     if (mode === "top") {
       copy.sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score; // upvotes desc
+        if (b.score !== a.score) return b.score - a.score; // by upvotes desc
         return new Date(a.created_at).getTime() - new Date(b.created_at).getTime(); // older first for ties
       });
     } else {
-      copy.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); // newest first
+      copy.sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ); // newest first
     }
     return copy;
   }
 
   function applyDeltaAndResort(qid: string, delta: number) {
-    setList(prev => {
-      const updated = prev.map(it =>
+    setList((prev) => {
+      const updated = prev.map((it) =>
         it.id === qid ? { ...it, score: Math.max(0, it.score + delta) } : it
       );
       return sortRows(updated, sortRef.current);
@@ -154,7 +167,10 @@ export default function QuestionList() {
       const { data: myVotes } = await supabase
         .from("votes")
         .select("question_id")
-        .in("question_id", rows.map((r) => r.id))
+        .in(
+          "question_id",
+          rows.map((r) => r.id)
+        )
         .eq("device_id", deviceId);
       setVoted(new Set((myVotes || []).map((v) => v.question_id as string)));
     } else {
@@ -162,67 +178,88 @@ export default function QuestionList() {
     }
   }
 
-  // Initial load + realtime subscriptions
+  // initial load + realtime
   useEffect(() => {
     void refresh();
 
     const ch = supabase
       .channel("sawaali_realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "questions" }, () => {
-        void refresh();
-      })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "votes" }, (payload) => {
-        const v = payload.new as any;
-        const voteId = v?.id as string | undefined;
-        const qid = v?.question_id as string | undefined;
-
-        if (voteId && pendingInsertIds.current.has(voteId)) {
-          pendingInsertIds.current.delete(voteId);
-          return;
+      // Any question change → full refresh
+      .on(
+        "postgres_changes" as const,
+        { event: "*", schema: "public", table: "questions" } as const,
+        () => {
+          void refresh();
         }
-        if (qid) applyDeltaAndResort(qid, +1);
-        else void refresh();
-        refreshSoon();
-      })
-      .on("postgres_changes", { event: "DELETE", schema: "public", table: "votes" }, (payload) => {
-        const v = payload.old as any;
-        const voteId = v?.id as string | undefined;
-        const qid = v?.question_id as string | undefined;
+      )
+      // Votes INSERT: patch score and re-sort, plus a debounced refresh
+      .on(
+        "postgres_changes" as const,
+        { event: "INSERT", schema: "public", table: "votes" } as const,
+        (payload: RealtimePostgresChangesPayload<VoteRow>) => {
+          const v = payload.new as VoteRow;
+          const voteId = v?.id;
+          const qid = v?.question_id;
 
-        if (voteId && pendingDeleteIds.current.has(voteId)) {
-          pendingDeleteIds.current.delete(voteId);
-          return;
+          if (voteId && pendingInsertIds.current.has(voteId)) {
+            pendingInsertIds.current.delete(voteId);
+            return;
+          }
+          if (qid) applyDeltaAndResort(qid, +1);
+          else void refresh();
+
+          refreshSoon();
         }
-        if (qid) applyDeltaAndResort(qid, -1);
-        else void refresh();
-        refreshSoon();
-      })
+      )
+      // Votes DELETE: patch score and re-sort, plus a debounced refresh
+      .on(
+        "postgres_changes" as const,
+        { event: "DELETE", schema: "public", table: "votes" } as const,
+        (payload: RealtimePostgresChangesPayload<VoteRow>) => {
+          const v = payload.old as VoteRow;
+          const voteId = v?.id;
+          const qid = v?.question_id;
+
+          if (voteId && pendingDeleteIds.current.has(voteId)) {
+            pendingDeleteIds.current.delete(voteId);
+            return;
+          }
+          if (qid) applyDeltaAndResort(qid, -1);
+          else void refresh();
+
+          refreshSoon();
+        }
+      )
       .subscribe();
 
     return () => {
       if (refreshTimer.current) window.clearTimeout(refreshTimer.current);
       void supabase.removeChannel(ch);
     };
+    // deps intentionally minimal — handlers use refs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId]);
 
   // Resort immediately + refetch when the user toggles Top/Newest
   useEffect(() => {
-    setList(prev => sortRows(prev, sort)); // instant UI update
-    void refresh();                        // canonical order from DB
+    setList((prev) => sortRows(prev, sort)); // instant
+    void refresh(); // canonical
   }, [sort]);
 
-  // 🔁 Every 15s: re-render (updates timeAgo) + pull fresh data
+  // Every 15s: re-render (timeAgo updates) + pull fresh data
   useEffect(() => {
     const id = setInterval(() => {
-      setTick(t => t + 1);         // trigger re-render only
-      void refresh();              // fetch fresh rows
+      setTick((t) => t + 1);
+      void refresh();
     }, 15_000);
     return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Toggle like or unlike with optimistic UI and per-tab echo suppression
   async function toggleVote(id: string, isVotedNow: boolean) {
     if (!isVotedNow) {
+      // like
       setVoted((prev) => new Set(prev).add(id));
       applyDeltaAndResort(id, +1);
 
@@ -233,6 +270,7 @@ export default function QuestionList() {
         .single();
 
       if (error && !String(error.message).toLowerCase().includes("duplicate")) {
+        // rollback
         setVoted((prev) => {
           const n = new Set(prev);
           n.delete(id);
@@ -244,6 +282,7 @@ export default function QuestionList() {
         pendingInsertIds.current.add(data.id as string);
       }
     } else {
+      // unlike
       setVoted((prev) => {
         const n = new Set(prev);
         n.delete(id);
@@ -251,6 +290,7 @@ export default function QuestionList() {
       });
       applyDeltaAndResort(id, -1);
 
+      // get this device’s vote row id to delete and track
       const { data: rows, error: qErr } = await supabase
         .from("votes")
         .select("id")
@@ -259,6 +299,7 @@ export default function QuestionList() {
         .limit(1);
 
       if (qErr || !rows?.length) {
+        // rollback
         setVoted((prev) => new Set(prev).add(id));
         applyDeltaAndResort(id, +1);
         alert("Could not find your like to remove");
@@ -268,6 +309,7 @@ export default function QuestionList() {
       const voteId = rows[0].id as string;
       const { error } = await supabase.from("votes").delete().eq("id", voteId);
       if (error) {
+        // rollback
         setVoted((prev) => new Set(prev).add(id));
         applyDeltaAndResort(id, +1);
         alert("Could not remove your like");
@@ -285,23 +327,30 @@ export default function QuestionList() {
           <button
             onClick={() => setSort("top")}
             aria-pressed={sort === "top"}
-            className={`px-3 py-1 rounded-full text-sm font-medium transition
-              ${sort === "top" ? "bg-white text-black" : "text-neutral-300 hover:bg-neutral-800"}`}
+            className={`px-3 py-1 rounded-full text-sm font-medium transition ${
+              sort === "top"
+                ? "bg-white text-black"
+                : "text-neutral-300 hover:bg-neutral-800"
+            }`}
           >
             Top
           </button>
           <button
             onClick={() => setSort("new")}
             aria-pressed={sort === "new"}
-            className={`px-3 py-1 rounded-full text-sm font-medium transition
-              ${sort === "new" ? "bg-white text-black" : "text-neutral-300 hover:bg-neutral-800"}`}
+            className={`px-3 py-1 rounded-full text-sm font-medium transition ${
+              sort === "new"
+                ? "bg-white text-black"
+                : "text-neutral-300 hover:bg-neutral-800"
+            }`}
           >
             Newest
           </button>
         </div>
       </div>
 
-      <ul className="space-y-2">
+      {/* use tick so ESLint doesn't flag it as unused */}
+      <ul className="space-y-2" data-tick={tick}>
         {list.map((q) => (
           <QuestionRow
             key={q.id}

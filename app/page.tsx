@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { setEmailIfValid } from "@/lib/session";
 import { useRouter } from "next/navigation";
@@ -13,7 +12,7 @@ export default function Gate() {
     try {
       setEmailIfValid(email);
       router.push("/qna");
-    } catch (e: unknown) {                    // ⬅️ was `any`
+    } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Invalid email";
       setErr(msg);
     }

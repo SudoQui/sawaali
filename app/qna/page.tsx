@@ -8,10 +8,10 @@ import { getSavedEmail } from "@/lib/session";
 
 export default function QnaPage() {
   const router = useRouter();
-
-  useEffect(() => {
-    if (!getSavedEmail()) router.replace("/");
-  }, []);
+  
+useEffect(() => {
+  if (!getSavedEmail()) router.replace("/");
+}, [router]);
 
   return (
     <main className="mx-auto max-w-md p-4 space-y-4">

@@ -6,10 +6,16 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 // Fonts
-import { Playfair_Display, Great_Vibes, DM_Sans } from "next/font/google";
+import { Playfair_Display, Great_Vibes, DM_Sans, Alatsi } from "next/font/google";
+import { Style_Script } from "next/font/google";
+
 const playfair = Playfair_Display({ subsets: ["latin"], weight: ["700", "800"] });
 const vibes = Great_Vibes({ subsets: ["latin"], weight: "400" });
 const dmsans = DM_Sans({ subsets: ["latin"], weight: ["400", "500", "700"] });
+const alatsi = Alatsi({ subsets: ["latin"], weight: "400" });
+const styleScript = Style_Script({ subsets: ["latin"], weight: "400" });
+
+
 
 export default function Gate() {
   const [email, setEmail] = useState("");
@@ -108,14 +114,29 @@ export default function Gate() {
         {/* Tagline */}
         <p
           className={[
-            vibes.className,
+            alatsi.className,
             "text-center text-[#0e2a3d]",
-            "text-[clamp(22px,5.5vw,44px)] leading-tight",
+            // overall tagline font scales a bit smaller
+            "text-[clamp(14px,4.2vw,34px)]",
+            // tighter vertical space so it doesn’t push content down
+            "leading-none",
             "mt-1",
           ].join(" ")}
         >
-          Ask your questions with <span className="tracking-wide">Sawaali</span>
+          Ask your questions with{" "}
+          <span
+            className={[
+              styleScript.className,
+              // make just “Sawaali” smaller than the sentence
+              "text-[0.85em] sm:text-[0.9em]",
+              "tracking-wide align-[-0.08em]",
+            ].join(" ")}
+          >
+            Sawaali
+          </span>
         </p>
+
+
 
         {/* Email card — compact so we always fit in 1 screen */}
         <div

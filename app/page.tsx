@@ -203,13 +203,13 @@ export default function Gate() {
             onClick={go}
             disabled={!email || loading}
             className={[
-              "mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3",
-              "text-sm font-semibold text-white shadow-lg shadow-indigo-500/25",
-              "bg-gradient-to-r from-sky-500 via-indigo-600 to-fuchsia-600",
-              "hover:from-sky-500/90 hover:via-indigo-600/90 hover:to-fuchsia-600/90",
-              "disabled:cursor-not-allowed disabled:opacity-60",
-              "transition active:scale-[.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60",
-            ].join(" ")}
+            "mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3",
+            "text-sm font-semibold text-white shadow-lg shadow-slate-900/25",
+            "bg-gradient-to-r from-slate-800 via-slate-900 to-indigo-950",
+            "hover:from-slate-700 hover:via-slate-800 hover:to-indigo-900",
+            "disabled:cursor-not-allowed disabled:opacity-60",
+            "transition active:scale-[.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-800/60",
+          ].join(" ")}
           >
             {loading ? (
               <>

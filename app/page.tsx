@@ -6,16 +6,13 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 // Fonts
-import { Playfair_Display, Great_Vibes, DM_Sans, Alatsi } from "next/font/google";
-import { Style_Script } from "next/font/google";
+import { Playfair_Display, Great_Vibes, DM_Sans, Alatsi, Style_Script } from "next/font/google";
 
 const playfair = Playfair_Display({ subsets: ["latin"], weight: ["700", "800"] });
 const vibes = Great_Vibes({ subsets: ["latin"], weight: "400" });
 const dmsans = DM_Sans({ subsets: ["latin"], weight: ["400", "500", "700"] });
 const alatsi = Alatsi({ subsets: ["latin"], weight: "400" });
 const styleScript = Style_Script({ subsets: ["latin"], weight: "400" });
-
-
 
 export default function Gate() {
   const [email, setEmail] = useState("");
@@ -59,90 +56,99 @@ export default function Gate() {
   return (
     <main
       className={[
-        // full viewport, no scroll
+        // full viewport height (mobile safe), no scrolling
         "h-[100svh] min-h-[100svh] w-full overflow-hidden",
-        // solid blue background
         "bg-[#97cee5]",
-        // center content
-        "flex items-center justify-center",
-        "px-3",
+        // column layout so we can pin top group & bottom mark
+        "flex flex-col items-center",
+        // slight breathing room (top/bottom a few ems)
+        "pt-[2.5em] pb-[2.25em] px-3",
+        // if the screen is short, reduce paddings a touch
+        "max-[720px]:pt-[2em] max-[720px]:pb-[1.75em]",
       ].join(" ")}
     >
-      {/* Content column — scales to phone & desktop */}
+      {/* Content column: allow a little wider on big screens */}
       <section
         className={[
-          "w-[min(92vw,980px)]",
-          "grid gap-4 sm:gap-5",
-          // if screen is short, tighten gaps further
-          "max-[700px]:gap-3",
+          "w-full",
+          "max-w-[46rem] md:max-w-[52rem] lg:max-w-[58rem]",
+          "flex flex-col items-stretch",
+          // distribute space so we never need to scroll
+          "grow",
         ].join(" ")}
       >
-        {/* Title */}
-        <h1
-          className={[
-            playfair.className,
-            "text-center font-extrabold tracking-tight text-[#0e2a3d]",
-            "drop-shadow-[0_1px_0_rgba(255,255,255,0.35)]",
-            // clamp keeps it huge on desktop, compact on phones
-            "text-[clamp(28px,6.2vw,68px)]",
-            "leading-tight",
-          ].join(" ")}
-        >
-          Ameen vs Amen
-        </h1>
-
-        {/* Logos banner — wide, edge-to-edge inside card */}
+        {/* TOP GROUP ------------------------------------------------------- */}
         <div
           className={[
-            "relative w-full rounded-2xl shadow-xl backdrop-blur",
-            "aspect-[16/6] sm:aspect-[16/5]",
-          ].join(" ")}
-          style={{ backgroundColor: "#7bb6d1" }}
-        >
-          <Image
-            src="/img/MSAvsUCF.png"
-            alt="Islamic Society & FOCUS logos"
-            fill
-            priority
-            className="object-cover"
-            sizes="(max-width: 768px) 92vw, 980px"
-          />
-        </div>
-
-
-
-        {/* Tagline */}
-        <p
-          className={[
-            alatsi.className,
-            "text-center text-[#0e2a3d]",
-            // overall tagline font scales a bit smaller
-            "text-[clamp(14px,4.2vw,34px)]",
-            // tighter vertical space so it doesn’t push content down
-            "leading-none",
-            "mt-1",
+            // keep these near the top; small gap
+            "grid gap-3 sm:gap-4",
+            // when height is tight, squeeze the gaps a bit more
+            "max-[700px]:gap-2",
           ].join(" ")}
         >
-          Ask your questions with{" "}
-          <span
+          {/* Title */}
+          <h1
             className={[
-              styleScript.className,
-              // make just “Sawaali” smaller than the sentence
-              "text-[0.85em] sm:text-[0.9em]",
-              "tracking-wide align-[-0.08em]",
+              playfair.className,
+              "text-center font-extrabold tracking-tight text-[#0e2a3d]",
+              "drop-shadow-[0_1px_0_rgba(255,255,255,0.35)]",
+              "leading-tight",
+              // responsive size
+              "text-[clamp(28px,6.2vw,64px)]",
             ].join(" ")}
           >
-            Sawaali
-          </span>
-        </p>
+            Ameen vs Amen
+          </h1>
 
+          {/* Logos banner */}
+          <div
+            className={[
+              "relative w-full rounded-2xl shadow-xl backdrop-blur",
+              // aspect ratio works well for both phone & desktop
+              "aspect-[16/6] sm:aspect-[16/5]",
+            ].join(" ")}
+            style={{ backgroundColor: "#7bb6d1" }}
+          >
+            <Image
+              src="/img/MSAvsUCF.png"
+              alt="Islamic Society & FOCUS logos"
+              fill
+              priority
+              className="object-contain p-2 sm:p-3"
+              sizes="(max-width: 768px) 92vw, 900px"
+            />
+          </div>
 
+          {/* Tagline */}
+          <p
+            className={[
+              alatsi.className,
+              "text-center text-[#0e2a3d]",
+              "leading-none",
+              "text-[clamp(14px,4.2vw,32px)]",
+              "pb-20"
+            ].join(" ")}
+          >
+            Ask your questions with{" "}
+            <span
+              className={[
+                styleScript.className,
+                "text-[0.9em] sm:text-[0.95em] tracking-wide align-[-0.08em]",
+              ].join(" ")}
+            >
+              Sawaali
+            </span>
+          </p>
+        </div>
 
-        {/* Email card — compact so we always fit in 1 screen */}
+        {/* MIDDLE: Email card --------------------------------------------- */}
         <div
           className={[
+            "mt-3 sm:mt-4",
             "rounded-2xl backdrop-blur-xl shadow-2xl",
-            "px-4 sm:px-6 py-4",
+            "px-4 sm:px-6 py-10",
+            // keep card visually lighter than bg
+            "mx-auto w-full",
           ].join(" ")}
           style={{ backgroundColor: "#7bb6d1" }}
         >
@@ -203,13 +209,13 @@ export default function Gate() {
             onClick={go}
             disabled={!email || loading}
             className={[
-            "mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3",
-            "text-sm font-semibold text-white shadow-lg shadow-slate-900/25",
-            "bg-gradient-to-r from-slate-800 via-slate-900 to-indigo-950",
-            "hover:from-slate-700 hover:via-slate-800 hover:to-indigo-900",
-            "disabled:cursor-not-allowed disabled:opacity-60",
-            "transition active:scale-[.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-800/60",
-          ].join(" ")}
+              "mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3",
+              "text-sm font-semibold text-white shadow-lg shadow-slate-900/25",
+              "bg-gradient-to-r from-slate-800 via-slate-900 to-indigo-950",
+              "hover:from-slate-700 hover:via-slate-800 hover:to-indigo-900",
+              "disabled:cursor-not-allowed disabled:opacity-60",
+              "transition active:scale-[.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-800/60",
+            ].join(" ")}
           >
             {loading ? (
               <>
@@ -241,8 +247,8 @@ export default function Gate() {
           </p>
         </div>
 
-        {/* Powered by — smaller */}
-        <div className="flex justify-center">
+        {/* BOTTOM: Powered by (few ems from bottom) ----------------------- */}
+        <div className="mt-auto flex justify-center pt-3">
           <Image
             src="/img/PoweredBySudoTech.png"
             alt="Powered by SudoQui Tech"

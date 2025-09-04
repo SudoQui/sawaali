@@ -56,33 +56,25 @@ export default function Gate() {
   return (
     <main
       className={[
-        // full viewport height (mobile safe), no scrolling
         "h-[100svh] min-h-[100svh] w-full overflow-hidden",
         "bg-[#97cee5]",
-        // column layout so we can pin top group & bottom mark
         "flex flex-col items-center",
-        // slight breathing room (top/bottom a few ems)
         "pt-[2.5em] pb-[2.25em] px-3",
-        // if the screen is short, reduce paddings a touch
         "max-[720px]:pt-[2em] max-[720px]:pb-[1.75em]",
       ].join(" ")}
     >
-      {/* Content column: allow a little wider on big screens */}
       <section
         className={[
           "w-full",
           "max-w-[46rem] md:max-w-[52rem] lg:max-w-[58rem]",
           "flex flex-col items-stretch",
-          // distribute space so we never need to scroll
           "grow",
         ].join(" ")}
       >
         {/* TOP GROUP ------------------------------------------------------- */}
         <div
           className={[
-            // keep these near the top; small gap
             "grid gap-3 sm:gap-4",
-            // when height is tight, squeeze the gaps a bit more
             "max-[700px]:gap-2",
           ].join(" ")}
         >
@@ -93,7 +85,6 @@ export default function Gate() {
               "text-center font-extrabold tracking-tight text-[#0e2a3d]",
               "drop-shadow-[0_1px_0_rgba(255,255,255,0.35)]",
               "leading-tight",
-              // responsive size
               "text-[clamp(28px,6.2vw,64px)]",
             ].join(" ")}
           >
@@ -104,7 +95,6 @@ export default function Gate() {
           <div
             className={[
               "relative w-full rounded-2xl shadow-xl backdrop-blur",
-              // aspect ratio works well for both phone & desktop
               "aspect-[16/6] sm:aspect-[16/5]",
             ].join(" ")}
             style={{ backgroundColor: "#7bb6d1" }}
@@ -147,7 +137,6 @@ export default function Gate() {
             "mt-3 sm:mt-4",
             "rounded-2xl backdrop-blur-xl shadow-2xl",
             "px-4 sm:px-6 py-10",
-            // keep card visually lighter than bg
             "mx-auto w-full",
           ].join(" ")}
           style={{ backgroundColor: "#7bb6d1" }}
